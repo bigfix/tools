@@ -1,0 +1,221 @@
+{
+	"HealthCheckSections": [
+		{
+			"SectionName": "BES Relay Health",
+			"checklist": [
+				{
+					"name": "Download Folder",
+					"severity": "Critical",
+					"checkrel": "applicable computer count of BES Fixlets whose (name of site of it = \"BES Support\" and id of it = 535 ) > 0",
+					"descriptionrel": "ids of applicable computers of BES Fixlets whose (name of site of it = \"BES Support\" and id of it = 535 )" 
+				},
+				{
+					"name": "FillDB Bufferdir File Counts",
+					"severity": "Critical",
+					"checkrel": "exists values whose (it as integer > 50) of results whose (exists value of it) of (BES Property \"BES Health Checks::Number of Files in FillDB Bufferdir\")"
+				},
+				{
+					"name": "Clients per Relay",
+					"severity": "High",
+					"checkrel": "exists unique values whose (multiplicity of it > 1000) of (values of results of bes property \"relay\")"
+				},
+				{
+					"name": "BES Relay Server Stopped",
+					"severity": "High",
+					"checkrel": "exists results whose (value of it as lowercase contains \"yes - stopped\") of bes property \"BES Relay Service Installed\""
+				},
+				{
+					"name": "BES Relay Free Disk Space",
+					"severity": "High",
+					"checkrel": "(if (it contains \"Failed\") then \"Failed\" else if (it contains \"Warning\") then \"Warning\" else \"Passed\") of concatenation \"\" of (if (value of item 0 of it as integer < item 1 of it as integer - 1) then \"Failed\" else if (value of item 0 of it as integer <= item 1 of it as integer - 1) then \"Warning\" else \"Passed\") of (results whose (exists value of it) of BES Property \"BES Health Checks::Actionsite Version\", maximum of ((values of results from (BES Property \"BES Health Checks::Actionsite Version\") whose (exists value of it) of computers of results whose (exists value of it and (value of it = \"Main BES Server\" or value of it = \"BES Root Server\")) of BES Property \"BES Relay Service Installed\") as integer))"
+				},
+				{
+					"name": "Actionsite Versions",
+					"severity": "High",
+					"checkrel": "(if (it contains \"Failed\") then \"Failed\" else if (it contains \"Warning\") then \"Warning\" else \"Passed\") of concatenation \"\" of (if (value of item 0 of it as integer < item 1 of it as integer - 1) then \"Failed\" else if (value of item 0 of it as integer <= item 1 of it as integer - 1) then \"Warning\" else \"Passed\") of (results whose (exists value of it) of BES Property \"BES Health Checks::Actionsite Version\", maximum of ((values of results from (BES Property \"BES Health Checks::Actionsite Version\") whose (exists value of it) of computers of results whose (exists value of it and (value of it = \"Main BES Server\" or value of it = \"BES Root Server\")) of BES Property \"BES Relay Service Installed\") as integer))"
+				},
+				{
+					"name": "BES Relay Version",
+					"severity": "Medium",
+					"checkrel": "(if (it contains \"Failed\") then \"Failed\" else if (it contains \"Warning\") then \"Warning\" else \"Passed\") of concatenation of (if (((preceding text of first \".\" of item 1 of it) as integer < (preceding text of first \".\" of item 0 of it) as integer) OR (((preceding text of first \".\" of item 1 of it) as integer = (preceding text of first \".\" of item 0 of it) as integer) AND ((preceding text of first \".\" of following text of first \".\" of item 1 of it) as integer < (preceding text of first \".\" of following text of first \".\" of item 0 of it) as integer)) ) then \"Failed\" else if (((preceding text of first \".\" of following text of first \".\" of following text of first \".\" of item 1 of it) as integer < (preceding text of first \".\" of following text of first \".\" of following text of first \".\" of item 0 of it) as integer) OR (((preceding text of first \".\" of following text of first \".\" of following text of first \".\" of item 1 of it) as integer = (preceding text of first \".\" of following text of first \".\" of following text of first \".\" of item 0 of it) as integer) AND ((following text of first \".\" of following text of first \".\" of following text of first \".\" of item 1 of it) as integer < (following text of first \".\" of following text of first \".\" of following text of first \".\" of item 0 of it) as integer))) then \"Warning\" else \"Passed\") of ((preceding text of first \",\" of ((concatenation \",\" of (values whose (it != \"Not Installed\") of results of BES Property \"BES Server Version\")) & \",\")), values whose (it != \"Not Installed\") of results of BES Property \"BES Relay Version\")"
+				},
+				{
+					"name": "Registration List Size",
+					"severity": "Medium",
+					"checkrel": "if (exists preceding texts whose (it as integer > 50000) of firsts \" \" of values of results whose (value of it != \"N/A\") of bes property \"BES Health Checks::Registration List Size\") then \"Failed\" else if (exists preceding texts whose (it as integer > 30000) of firsts \" \" of values of results whose (value of it != \"N/A\") of bes property \"BES Health Checks::Registration List Size\") then \"Warning\" else \"Passed\""
+				}
+			]
+		},
+		{
+			"SectionName": "BES Console Health",
+			"checklist": [
+				{
+					"name": "Too Many Offline Computers",
+					"severity": "Critical",
+					"checkrel": "(number of results whose (exists value of it and (now - value of it as local time > 3 * hour)) of bes property \"Last Report Time\") > ((Number of BES Computers) * (4 / 5 as floating point))"
+				},
+				{
+					"name": "Stopped and Expired Actions",
+					"severity": "High",
+					"checkrel": "(if (it > 10000) then \"Failed\" else if (it > 5000) then \"Warning\" else \"Passed\") of number of BES Actions whose ((Exists parent group whose (state of it = \"Expired\" or state of it = \"Stopped\") of it) or  (not exists parent group of it and (state of it = \"Expired\" or state of it = \"Stopped\")))"
+				},
+				{
+					"name": "Stopped and Expired Hidden Actions",
+					"severity": "Medium",
+					"checkrel": "(number of Hidden BES Actions whose ((Exists parent group whose (state of it = \"Expired\" or state of it = \"Stopped\") of it) or (not exists parent group of it and (state of it = \"Expired\" or state of it = \"Stopped\")))) > 500"
+				},
+				{
+					"name": "BES Console Version",
+					"severity": "Medium",
+					"checkrel": "(if (it contains \"Failed\") then \"Failed\" else if (it contains \"Warning\") then \"Warning\" else \"Passed\") of concatenation of (if (((preceding text of first \".\" of item 1 of it) as integer < (preceding text of first \".\" of item 0 of it) as integer) OR (((preceding text of first \".\" of item 1 of it) as integer = (preceding text of first \".\" of item 0 of it) as integer) AND ((preceding text of first \".\" of following text of first \".\" of item 1 of it) as integer < (preceding text of first \".\" of following text of first \".\" of item 0 of it) as integer)) ) then \"Failed\" else if (((preceding text of first \".\" of following text of first \".\" of following text of first \".\" of item 1 of it) as integer < (preceding text of first \".\" of following text of first \".\" of following text of first \".\" of item 0 of it) as integer) OR (((preceding text of first \".\" of following text of first \".\" of following text of first \".\" of item 1 of it) as integer = (preceding text of first \".\" of following text of first \".\" of following text of first \".\" of item 0 of it) as integer) AND ((following text of first \".\" of following text of first \".\" of following text of first \".\" of item 1 of it) as integer < (following text of first \".\" of following text of first \".\" of following text of first \".\" of item 0 of it) as integer))) then \"Warning\" else \"Passed\") of ((preceding text of first \",\" of ((concatenation \",\" of (values whose (it != \"Not Installed\") of results of BES Property \"BES Server Version\")) & \",\")), values whose (it != \"Not Installed\") of results of BES Property \"BES Console Version\")"
+				},
+				{
+					"name": "Expired Computers",
+					"severity": "Medium",
+					"checkrel": "(if (it contains \"Failed\") then \"Failed\" else if (it contains \"Failed\") then \"Warning\" else \"Passed\") of concatenation of (if (it contains \"Failed\" and multiplicity of it > 100) then \"Failed\" else if (it contains \"Warning\" and multiplicity of it > 100) then \"Warning\" else \"Passed\") of unique values of ( if (now - (it as local time) > 90 * Day) then \"Failed\" else if (now - (it as local time) > 30 * Day) then \"Warning\" else \"Passed\" ) of values of results of bes property \"Last Report Time\""
+				},
+				{
+					"name": "Duplicate Computers",
+					"severity": "Medium",
+					"checkrel": "if (exists unique values whose (multiplicity of it > 1) of (values of results of bes property \"Computer Name\")) then (if (multiplicity of it > 100) then \"Failed\" else if (multiplicity of it > 25) then \"Warning\" else \"Passed\") of unique values whose (multiplicity of it > 1) of (values of results of bes property \"Computer Name\") else (\"Passed\")"
+				}
+			]
+		},
+		{
+			"SectionName": "BES Server Health",
+			"checklist": [
+				{
+					"name": "BES Server Free Disk Space",
+					"severity": "Critical",
+					"checkrel": "if (exist preceding texts whose (it as integer < 500) of firsts \" \" of values whose (it as string != \"N/A\") of results whose (exists value of it) of bes property \"BES Health Checks::BES Relay Free Disk Space\") then \"Failed\" else if (exist preceding texts whose (it as integer < 1000) of firsts \" \" of values whose (it as string != \"N/A\") of results of bes property \"BES Health Checks::BES Relay Free Disk Space\") then \"Warning\" else \"Passed\""
+				},
+				{
+					"name": "Number of Clients on Main BES Server",
+					"severity": "High",
+					"checkrel": "(if (it < 500) then \"Passed\" else if (it < 1000) then \"Warning\" else \"Failed\") of number of unique values of items 1 of ((it, value whose (it contains \"_BESClient_Relay_NameOverride\") of property results of it|\"No Result\",preceding text of first \":\" of substring after \"://\" of gather url of bes license as lowercase) of computers of results whose (value of it = \"Main BES Server\" or value of it = \"BES Root Server\") of bes property \"relay\", bes computers) whose ((value of result from (bes property \"Relay\") of item 1 of it as lowercase contains (item 2 of item 0 of it)) OR (value of result from (bes property \"Relay\") of item 1 of it as lowercase contains value of result from (bes property \"DNS Name\") of item 0 of item 0 of it as lowercase) OR (item 0 of item 0 of it = item 1 of it) OR (if ((item 1 of item 0 of it) does not equal \"No Result\") then (value of result from (bes property \"Relay\") of item 1 of it as lowercase contains item 1 of item 0 of it) else false))"
+				},
+				{
+					"name": "Number of Relays",
+					"severity": "High",
+					"checkrel": "(if (it < 50) then \"Passed\" else if (it < 100) then \"Warning\" else \"Failed\" ) of number of unique values of items 1 of ((it, value whose (it contains \"_BESClient_Relay_NameOverride\") of property results of it|\"No Result\",preceding text of first \":\" of substring after \"://\" of gather url of bes license as lowercase) of computers of results whose (value of it = \"Main BES Server\" or value of it = \"BES Root Server\") of bes property \"relay\", bes computers whose (value of result from (bes property \"BES Relay Service Installed\") of it contains \"Yes\")) whose ((value of result from (bes property \"Relay\") of item 1 of it as lowercase contains (item 2 of item 0 of it)) OR (value of result from (bes property \"Relay\") of item 1 of it as lowercase contains value of result from (bes property \"DNS Name\") of item 0 of item 0 of it as lowercase) OR (item 0 of item 0 of it = item 1 of it) OR (if ((item 1 of item 0 of it) does not equal \"No Result\") then (value of result from (bes property \"Relay\") of item 1 of it as lowercase contains item 1 of item 0 of it) else false))"
+				},
+				{
+					"name": "FillDB Log File Size",
+					"severity": "High",
+					"checkrel": "(if (it as integer > 1000) then \"Failed\" else if (it as integer > 500) then \"Warning\" else \"Passed\" ) of preceding text of first \" \" of value of results whose (value of it != \"N/A\") of bes property \"BES Health Checks::FillDB Log File Size\""
+				},
+				{
+					"name": "SQL Server Service Pack",
+					"severity": "Medium",
+					"checkrel": "if (exists BES Fixlets whose (name of site of it = \"Enterprise Security\" and ( id of it = 20312 or id of it = 204016 or id of it = 204013 ) and applicable computer count of it > 0 ) ) then \"Failed\" else \"Passed\""
+				}
+			]
+		},
+		{
+			"SectionName": "BES Client Health",
+			"checklist": [
+				{
+					"name": "BES Client Distance From BES Relays",
+					"severity": "High",
+					"checkrel": "(if (it > 1000) then \"Failed\" else if (it > 100) then \"Warning\" else \"Passed\") of number of (values whose (it != \"<n/a>\" AND it as integer > 5) of results of bes property \"Distance to BES Relay\")"
+				},
+				{
+					"name": "WMI Properties",
+					"severity": "Medium",
+					"checkrel": "if (exists BES Properties whose (custom flag of it AND (it contains \"wmi\" AND (it contains \"win32_printer\" or it contains \"win32_logicaldisk\" or it contains \"win32_share\" or it contains \"win32_diskdrive\" or it contains \"win32_networkadapter\" or it contains \"win32_ntlogevent\" or it contains \"win32_operatingsystem\")) of (definition of it as lowercase))) then \"Warning\" else \"Passed\""
+				},
+				{
+					"name": "Actions Targeted Using Lists",
+					"severity": "Medium",
+					"checkrel": "if (exists top level BES Actions whose (state of it = \"Open\" and ((targeted by list flag of it and number of targeted names of it > 1000) OR (targeted by id flag of it and number of targeted computers of it > 1000)))) then \"Failed\" else if (number of top level BES Actions whose (state of it = \"Open\" and ((targeted by list flag of it and number of targeted names of it > 50) OR (targeted by id flag of it and number of targeted computers of it > 50))) > 50) then \"Warning\" else \"Passed\""
+				},
+				{
+					"name": "Location Properties",
+					"severity": "Medium",
+					"checkrel": "exists BES Property whose (name of it as lowercase contains \"location by\" and definition of it as lowercase does not contain \"exist values of settings\")"
+				},
+				{
+					"name": "Actionsite Size",
+					"severity": "Medium",
+					"checkrel": "(if (it as integer > 50000) then \"Failed\" else if (it as integer > 25000) then \"Warning\" else \"Passed\" ) of preceding text of first \" \" of value of results whose (value of it != \"N/A\") of bes property \"BES Health Checks::Actionsite Size\""
+				}
+			]
+		},
+		{
+			"SectionName": "Deployment Optimization",
+			"checklist": [
+				{
+					"name": "Support Analysis Activation",
+					"severity": "Medium",
+					"checkrel": "if (exists BES Fixlets whose (analysis flag of it and name of site of it = \"BES Support\" and ( id of it = 204 or id of it = 205 ) and (not exists activations of it or not exists activations whose (active flag of it) of it))) then \"Warning\" else \"Passed\""
+				},
+				{
+					"name": "Open Actions",
+					"severity": "High",
+					"checkrel": "(if (it > 5000) then \"Failed\" else if (it > 2500) then \"Warning\" else \"Passed\") of number of BES Actions whose ((Exists parent group whose (state of it = \"Open\") of it) or (not exists parent group of it and state of it = \"Open\"))"
+				},
+				{
+					"name": "Open Hidden Actions",
+					"severity": "High",
+					"checkrel": "(number of Hidden BES Actions whose ((Exists parent group whose (state of it = \"Open\") of it) or (not exists parent group of it and state of it = \"Open\"))) > 500"
+				},
+				{
+					"name": "Operators Using Policy Actions",
+					"severity": "High",
+					"checkrel": "exists unique values whose (multiplicity of it > 10) of (links of issuers of top level BES Actions whose (not master flag of issuer of it and not exists end date of it and state of it = \"Open\") as string)"
+				},
+				{
+					"name": "Statistical Property Evaluation Period",
+					"severity": "High",
+					"checkrel": "exists BES Properties whose (keep statistics flag of it and exists evaluation period of it)"
+				},
+				{
+					"name": "ICMP Setting Controls",
+					"severity": "Medium",
+					"checkrel": "if (number of BES Computers > 20000 or number of values whose (it contains \"Yes\") of results of bes property \"BES Relay Service Installed\" > 200) then ((number of BES Computers whose ((value of result from (BES property \"BES Relay Selection Method\") of it as lowercase = \"automatic\") AND (exists (value whose (it contains \"_BESClient_RelaySelect_MaximumTTLToPing\") of it, value whose (it contains \"_BESClient_RelaySelect_ResistFailureIntervalSeconds\") of it, value whose (it contains \"_BESClient_RelaySelect_IntervalSeconds\") of it, value whose (it contains \"_BESClient_RelaySelect_MinRetryIntervalSeconds\") of it, value whose (it contains \"_BESClient_RelaySelect_MaxRetryIntervalSeconds\") of it) and (following text of first \"=\" of value whose (it contains \"_BESClient_RelaySelect_MaximumTTLToPing\") of it as integer <= 10) and (following text of first \"=\" of value whose (it contains \"_BESClient_RelaySelect_ResistFailureIntervalSeconds\") of it as integer >= 3600) and (following text of first \"=\" of value whose (it contains \"_BESClient_RelaySelect_IntervalSeconds\") of it as integer >= 86400) and (following text of first \"=\" of value whose (it contains \"_BESClient_RelaySelect_MinRetryIntervalSeconds\") of it as integer >= 3600) and (following text of first \"=\" of value whose (it contains \"_BESClient_RelaySelect_MaxRetryIntervalSeconds\") of it as integer >= 28800)) of result from (BES Property \"Client Settings\") of it)) < ((Number of BES Computers whose (value of result from (BES property \"BES Relay Selection Method\") of it as lowercase = \"automatic\")) * (9 / 10 as floating point))) else if (number of BES Computers > 10000 or number of values whose (it contains \"Yes\") of results of bes property \"BES Relay Service Installed\" > 50) then ((number of BES Computers whose ((value of result from (BES property \"BES Relay Selection Method\") of it as lowercase = \"automatic\") and (exists (value whose (it contains \"_BESClient_RelaySelect_MaximumTTLToPing\") of it, value whose (it contains \"_BESClient_RelaySelect_ResistFailureIntervalSeconds\") of it, value whose (it contains \"_BESClient_RelaySelect_IntervalSeconds\") of it, value whose (it contains \"_BESClient_RelaySelect_MinRetryIntervalSeconds\") of it, value whose (it contains \"_BESClient_RelaySelect_MaxRetryIntervalSeconds\") of it) and (following text of first \"=\" of value whose (it contains \"_BESClient_RelaySelect_MaximumTTLToPing\") of it as integer <= 20) and (following text of first \"=\" of value whose (it contains \"_BESClient_RelaySelect_ResistFailureIntervalSeconds\") of it as integer > 600) and (following text of first \"=\" of value whose (it contains \"_BESClient_RelaySelect_IntervalSeconds\") of it as integer > 21600) and (following text of first \"=\" of value whose (it contains \"_BESClient_RelaySelect_MinRetryIntervalSeconds\") of it as integer > 60) and (following text of first \"=\" of value whose (it contains \"_BESClient_RelaySelect_MaxRetryIntervalSeconds\") of it as integer > 7200)) of result from (BES Property \"Client Settings\") of it)) < ((Number of BES Computers whose (value of result from (BES property \"BES Relay Selection Method\") of it as lowercase = \"automatic\")) * (9 / 10 as floating point))) else (false)"
+				},
+				{
+					"name": "Components Per Baseline",
+					"severity": "Medium",
+					"checkrel": "exists BES Fixlets whose ((baseline flag of it) and (100 < number of child nodes whose (node name of it = \"BaselineComponent\") of child nodes whose (node name of it = \"BaselineComponentGroup\") of child nodes whose (node name of it = \"BaselineComponentCollection\") of xml documents of components xmls of it))"
+				},
+				{
+					"name": "Action Applicability Too Large",
+					"severity": "Medium",
+					"checkrel": "exists BES Actions whose (length of applicability relevance of it > 50000) "
+				},
+				{
+					"name": "Policy Actions Not Targeted By Property",
+					"severity": "Medium",
+					"checkrel": "(if (it > 100) then \"Failed\" else if (it > 10) then \"Warning\" else \"Passed\") of number of top level BES Actions whose (not exists end date of it and not targeted by property flag of it and state of it = \"Open\")"
+				},
+				{
+					"name": "Support Analysis Removal",
+					"severity": "Medium",
+					"checkrel": "if (exists BES Fixlets whose (analysis flag of it and name of site of it = \"BES Support\" and ( id of it = 213 or id of it = 214 or id of it = 215 or id of it = 216 or id of it = 217 ) and (exists activations of it and exists activations whose (active flag of it) of it))) then \"Failed\" else \"Passed\""
+				},
+				{
+					"name": "Eficient MIME",
+					"severity": "Medium",
+					"checkrel": "if (exists BES Fixlets whose (analysis flag of it and name of site of it = \"BES Support\" and id of it = 204 and exists activation of it and (exists activation whose (active flag of it) of it))) then (if (exists bes deployment option \"usePre70ClientCompatibleMIME\" AND value of bes deployment option \"usePre70ClientCompatibleMIME\" as boolean) then (\"Warning\") else (if (exists values whose (it as version < \"7.0\") of results of bes property \"BES Client Version\") then \"Warning\" else \"Passed\")) else ((if (exists bes deployment option \"usePre70ClientCompatibleMIME\" AND value of bes deployment option \"usePre70ClientCompatibleMIME\" as boolean) then \"Warning\" else \"Passed\"))"
+				},
+				{
+					"name": "Office Deployment Control Initial Assignment",
+					"severity": "Low",
+					"checkrel": "(sum of applicable computer counts of BES Fixlets whose (name of site of it = \"BES Support\" and (it = 28501 OR it = 30501 or it = 29501) of id of it) > 0) AND NOT Exists BES Actions whose ((it = 28501 or it = 30501 or it = 29501) of id of source fixlet of it and exists applicable computer count of source fixlet of it and state of it = \"Open\" and not exists end date of it)"
+				},
+				{
+					"name": "Deprecated Fixlet Sites",
+					"severity": "Low",
+					"checkrel": "exists names whose (it = \"BES AntiSpyware Manager\" OR it = \"BES Custom\" OR it = \"Nessus BES Integration\" OR it = \"BES New Content Beta\" OR it = \"BigFix Client Compliance (IPSec Framework) Demo\" OR it = \"Client Manager for Symantec Ghost\" OR it = \"Fiberlink Custom\" OR it = \"Mac Software Deployment POC\" OR it = \"Retina Remediation Manager (Gov)\" OR it = \"SecureInfo EVR\" OR it = \"SecureInfo Technologies\" OR it = \"VNC Deployment\" OR it = \"Zone Labs Cooperative Enforcement\" OR it = \"Configuration Manager\" OR it = \"Microsoft Patch Validation Program\" OR it = \"BES Asset Discovery BETA\" OR it = \"BES Inventory and License BETA\" OR it = \"BigFix AntiPest (powered by PestPatrol) BETA\" OR it = \"Client Manager for Microsoft SMS Beta\" OR it = \"Mac OS BETA\" OR it = \"Mobile Security Manager\" OR it = \"Patches for AIX Beta\" OR it = \"Updates for Windows Applications Beta\" OR it = \"BigFix AntiPest (powered by PestPatrol)\" OR it = \"BigFix AntiVirus (powered by CA eTrust)\" OR it = \"Patches for Windows (Dutch)\" OR it = \"Patches for Windows (Traditional Chinese)\" OR it as lowercase contains \"test\") of BES Sites"
+				},
+				{
+					"name": "License Expiration",
+					"severity": "Low",
+					"checkrel": "if ((expiration date of BES License - now) / (day) < 0) then \"Failed\" else if ((expiration date of BES License - now) / (day) < 15) then \"Warning\" else \"Passed\""
+				}
+			]
+		}
+	]
+}
+
