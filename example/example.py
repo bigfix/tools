@@ -10,9 +10,7 @@ class BigFixArgParser(ArgumentParser):
   -h, --help                  Print this help message and exit
   -s, --server SERVER[:PORT]  REST API server and port
   -u, --user USER[:PASSWORD]  REST API user and password
-  -k, --insecure              Don't verify the HTTPS connection to the server
-  -c, --cacert FILE           CA certificate used to verify the server's HTTPS
-                              certificate"""
+  -k, --insecure              Don't verify the HTTPS connection to the server"""
 
   def __init__(self):
     description = "A tool for creating a smarter planet"
@@ -21,7 +19,6 @@ class BigFixArgParser(ArgumentParser):
       usage=self.base_usage, description=description)
 
     self.add_argument('-k', '--insecure', action='store_true')
-    self.add_argument('-c', '--cacert')
     self.add_argument('-u', '--user', required=True)
     self.add_argument('-s', '--server', required=True)
     self.tool_usage = None
@@ -45,7 +42,3 @@ class BigFixArgParser(ArgumentParser):
       args.user = args.user + ':' + getpass(prompt)
 
     return args
-
-parser = BigFixArgParser()
-parser.tool_usage = """  -a, --apple                 Apples are cool"""
-print(parser.parse_args())
