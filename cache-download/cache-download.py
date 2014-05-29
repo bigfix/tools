@@ -78,7 +78,6 @@ def run():
                 if not (args.url is None or download.startswith(args.url)):
                     continue
                 if not (args.names is None or filename in args.names):
-
                     continue
 
                 if sha1 in already_prefetched:
