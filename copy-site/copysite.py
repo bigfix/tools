@@ -26,22 +26,6 @@ def scrub_fixlet(fixlet):
 	cutend = fixlet.index('</Value>', cutstart)
 	return fixlet[:cutstart] + fixlet[cutend:]
 
-def scrub_fixlet_hash(fixlet):
-	"""Takes a fixlet xml as a string and replaces the timestamp tag
-	with the md5 of the timestampless fixlet, so that I don't have to
-	redownload all the fixlets to know their hashes to check for dupes
-
-	Story time. There are PUT and POST endpts for updating fixlets, but
-	using these API endpts modifies the last access timestamp (I think).
-	So actually the best place to store the md5 is in the timestamp, 
-	because if the fixlet is ever modified the md5 is deleted, as opposed
-	to if I made a separate xml tag for md5. (I think)."""
-	cut = 'x-fixlet-modification-time</Name>'
-	cutstart = fixlet.index('<Value>', fixlet.find(cut))+7
-	cutend = fixlet.index('</Value>', cutstart)
-	return fixlet[:cutstart] + "md5: " + \
-		hashlib.md5(fixlet[:cutstart] + fixlet[cutend:]).hexdigest() + \
-		fixlet[cutend:]
 
 def main():
 	parser = BigFixArgParser()
@@ -121,21 +105,16 @@ def copy_site(auth, server, secureSSL, source_site, destination_site, get):
 	dest_fixlets = []
 	for fixlet in r.find_all('fixlet'):
 		dest_fixlets.append( (fixlet.find('name').text, fixlet['resource'], 
-			fixlet.id.text, fixlet.find('value', text='x-fixlet-modification-time')) )
+			fixlet.id.text) )
 
 	dest_fixlets_hash = dict() # a set of hashes.. lul cuz each fixlet is mem large
-	for fixlet_name, fixlet_url, fixlet_id, fixlet_timestamp in dest_fixlets:
-		if fixlet_timestamp[:5] == 'md5: ':
-			print "Found fixlet that had hash."
-			fixlet_hash = fixlet_timestamp[5:]
-		else:
-			r = get( fixlet_url )
+	for fixlet_name, fixlet_url, fixlet_id in dest_fixlets:
+		r = get( fixlet_url )
 
-			# fixlets timestamp themselves, so we'll cut that out to find dupes'
-			content_scrubbed = scrub_fixlet(r.content)
+		# fixlets timestamp themselves, so we'll cut that out to find dupes'
+		content_scrubbed = scrub_fixlet(r.content)
 
-			fixlet_hash = hashlib.md5(content_scrubbed).hexdigest()
-
+		fixlet_hash = hashlib.md5(content_scrubbed).hexdigest()
 		if fixlet_hash in dest_fixlets_hash:
 			# found a duplicate, delete it
 			print "Found duplicate fixlets on DEST: ID", fixlet_id, \
@@ -168,7 +147,7 @@ def copy_site(auth, server, secureSSL, source_site, destination_site, get):
 
 		postr = requests.post( server+'api/fixlets/%s/%s'% \
 			(destination_site[1], destination_site[0]), # /type/name
-			data = scrub_fixlet_hash(r.content),
+			data = r.content,
 			auth = auth,
 			verify = secureSSL )
 		print sys.getsizeof(r.content) / 1024.0, "KiB copied"
