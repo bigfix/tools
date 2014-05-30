@@ -1,2 +1,1 @@
-Execute relevance on a remote set of computers
-  * Output the reuslts
+Command-line tool to create an analysis based on given relevance, then output the results as they come in.
