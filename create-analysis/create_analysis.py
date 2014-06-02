@@ -38,6 +38,7 @@ class BigFixArgParser(ArgumentParser):
     self.add_argument('-n', '--site_name', required=True)
     self.add_argument('-a', '--analysis_name', required=True)
     self.add_argument('-d', '--description', required=True)
+    self.add_argument('-k', '--insecure', action='store_true')
     self.tool_usage = None
     self.password = None
 
@@ -81,9 +82,12 @@ def compose_analysis(name, description, relevance):
 
 
 
-def create_analysis(server, site_type, site_name, user, password, analysis):
-  r = requests.post("https://{0}/api/analyses/{1}/{2}".format(server, site_type, site_name), 
-            auth=(user, password), data=analysis, verify=False)
+def create_analysis(server, site_type, site_name, user, password, analysis, insecure):
+  if site_type == "master":
+    site = "https://{0}/api/analyses/{1}".format(server, site_type)
+  else:
+    site = "https://{0}/api/analyses/{1}/{2}".format(server, site_type, site_name)
+  r = requests.post(site, auth=(user, password), data=analysis, verify=not insecure)
   return r.text
 
 
@@ -91,7 +95,8 @@ def main():
   args = BigFixArgParser().parse_args()
   relevance = stdin.read()
   analysis = compose_analysis(args.analysis_name, args.description, relevance)
-  stdout.write(create_analysis(args.server, args.site_type, args.site_name, args.user, args.password, analysis))
+  stdout.write(create_analysis(args.server, args.site_type, args.site_name,
+                               args.user, args.password, analysis, args.insecure))
 
 
 if __name__ == "__main__":
