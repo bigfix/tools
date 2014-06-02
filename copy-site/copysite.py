@@ -2,6 +2,9 @@
 #
 # Copy resources from one site (e.g. external) to another (e.g. internal)
 # Parses through Fixlets, Tasks, Analyses and copies them using the API
+# 
+# actually right now it just does fixlets
+
 
 from bs4 import BeautifulSoup
 import requests
@@ -18,7 +21,7 @@ from example import BigFixArgParser
 
 FIXLET_HASH_FILE_PATH = "fixlet_hashes.txt"
 CACHE_TIME = 60*60*3
-FIXLET_LIMIT = 30
+FIXLET_LIMIT = float("inf")
 
 def scrub_fixlet(fixlet):
 	"""Takes a fixlet xml as a string and removes the timestamp tag
@@ -43,7 +46,7 @@ def read_fixlet_hashes():
 	return hashes
 
 def main():
-	parser = BigFixArgParser()
+	parser = BigFixArgParser("Copy a site's resources to another")
 	parser.tool_usage = """copysite options:
   -r, --source-site           Name of site to copy resources from
   -d, --destination-site      Name of site to copy resources to

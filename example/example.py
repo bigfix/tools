@@ -9,7 +9,7 @@ class Classy():
     print d
 
 class BigFixArgParser(ArgumentParser):
-  name = "Usage: hodor.py [options]"
+  name = "Usage: %s [options]"
   base_usage = """Options:
   -h, --help                  Print this help message and exit
   -s, --server SERVER[:PORT]  REST API server and port
@@ -17,8 +17,9 @@ class BigFixArgParser(ArgumentParser):
   -p, --password              REST API password
   -k, --insecure              Don't verify the HTTPS connection to the server"""
 
-  def __init__(self):
-    description = "A tool for creating a smarter planet"
+  def __init__(self, desc="A tool for creating a smarter planet"):
+    self.name = self.name%sys.argv[0]
+    description = desc
 
     super(BigFixArgParser, self).__init__(add_help=False,
       usage=self.base_usage, description=description)
