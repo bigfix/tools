@@ -9,13 +9,16 @@ import mimetypes
 import email
 from email.parser import Parser
 import re
-import sys, os
+import sys, os, time
 import hashlib
 
 # from example.example import BigFixArgParser
 sys.path.append(os.path.abspath(os.path.join("../example")))
 from example import BigFixArgParser
 
+FIXLET_HASH_FILE_PATH = "fixlet_hashes.txt"
+CACHE_TIME = 60*60*3
+FIXLET_LIMIT = 30
 
 def scrub_fixlet(fixlet):
 	"""Takes a fixlet xml as a string and removes the timestamp tag
@@ -26,6 +29,18 @@ def scrub_fixlet(fixlet):
 	cutend = fixlet.index('</Value>', cutstart)
 	return fixlet[:cutstart] + fixlet[cutend:]
 
+def save_fixlet_hashes(hashes):
+	with open(FIXLET_HASH_FILE_PATH, 'w+') as f:
+		for fixlet_hash, fixlet_id in hashes.items():
+			f.write("%s %s\n"%(fixlet_hash, fixlet_id))
+
+def read_fixlet_hashes():
+	hashes = {}
+	with open(FIXLET_HASH_FILE_PATH, 'r') as f:
+		for line in f:
+			line = line.strip().split()
+			hashes[line[0]] = line[1]
+	return hashes
 
 def main():
 	parser = BigFixArgParser()
@@ -93,41 +108,55 @@ def copy_site(auth, server, secureSSL, source_site, destination_site, get):
 
 	fixlets = []
 	for fixlet in r.find_all('fixlet'):
+		if len(fixlets) > FIXLET_LIMIT:
+			break
 		fixlets.append( (fixlet.find('name').text, fixlet['resource'], 
 			fixlet.id.text) )
 
 	# find fixlets already on dest
-	print "Enumerating existing fixlets on DEST."
-	r = get( server+'api/fixlets/%s/%s'% \
-		(destination_site[1], destination_site[0]))
-	r = BeautifulSoup(r.text)
+	dest_fixlets_hash = dict()
+	if os.path.isfile(FIXLET_HASH_FILE_PATH) and \
+		os.path.getmtime(FIXLET_HASH_FILE_PATH) + CACHE_TIME > time.time():
+		# use our fixlet hashes cache!
+		dest_fixlets_hash = read_fixlet_hashes()
+	
+	if not dest_fixlets_hash: # if read_fixlet_hashes() read empty file, or no file existed
+		print "Enumerating existing fixlets on DEST."
+		r = get( server+'api/fixlets/%s/%s'% \
+			(destination_site[1], destination_site[0]))
+		r = BeautifulSoup(r.text)
 
-	dest_fixlets = []
-	for fixlet in r.find_all('fixlet'):
-		dest_fixlets.append( (fixlet.find('name').text, fixlet['resource'], 
-			fixlet.id.text) )
+		dest_fixlets = []
+		for fixlet in r.find_all('fixlet'):
+			dest_fixlets.append( (fixlet.find('name').text, fixlet['resource'], 
+				fixlet.id.text) )
 
-	dest_fixlets_hash = dict() # a set of hashes.. lul cuz each fixlet is mem large
-	for fixlet_name, fixlet_url, fixlet_id in dest_fixlets:
-		r = get( fixlet_url )
+		dest_fixlets_hash = dict() # a set of hashes.. lul cuz each fixlet is mem large
+		fixlet_count = 0
+		for fixlet_name, fixlet_url, fixlet_id in dest_fixlets:
+			fixlet_count += 1
+			if fixlet_count > FIXLET_LIMIT:
+				break
+			r = get( fixlet_url )
 
-		# fixlets timestamp themselves, so we'll cut that out to find dupes'
-		content_scrubbed = scrub_fixlet(r.content)
+			# fixlets timestamp themselves, so we'll cut that out to find dupes'
+			content_scrubbed = scrub_fixlet(r.content)
 
-		fixlet_hash = hashlib.md5(content_scrubbed).hexdigest()
-		if fixlet_hash in dest_fixlets_hash:
-			# found a duplicate, delete it
-			print "Found duplicate fixlets on DEST: ID", fixlet_id, \
-				"which duplicates", dest_fixlets_hash[fixlet_hash]
-			print "Deleting duplicate..."
-			deleter = requests.delete( fixlet_url,
-				auth = auth,
-				verify = secureSSL )
-			if deleter.status_code != 200:
-				print "Unable to delete fixlet", fixlet_id, "!!"
-		else:
-			dest_fixlets_hash[ fixlet_hash ] = fixlet_id
-
+			fixlet_hash = hashlib.md5(content_scrubbed).hexdigest()
+			if fixlet_hash in dest_fixlets_hash:
+				# found a duplicate, delete it
+				print "Found duplicate fixlets on DEST: ID", fixlet_id, \
+					"which duplicates", dest_fixlets_hash[fixlet_hash]
+				print "Deleting duplicate..."
+				deleter = requests.delete( fixlet_url,
+					auth = auth,
+					verify = secureSSL )
+				if deleter.status_code != 200:
+					print "Unable to delete fixlet", fixlet_id, "!!"
+			else:
+				dest_fixlets_hash[ fixlet_hash ] = fixlet_id
+	else:
+		print "Using %s to check for existing fixlets."%FIXLET_HASH_FILE_PATH
 
 	# copy the new fixlets from src to dest
 	print "Begin copying fixlets."
@@ -136,8 +165,9 @@ def copy_site(auth, server, secureSSL, source_site, destination_site, get):
 		r = get( fixlet_url )
 
 		content_scrubbed = scrub_fixlet(r.content)
+		fixlet_hash = hashlib.md5(content_scrubbed).hexdigest()
 
-		if hashlib.md5(content_scrubbed).hexdigest() in dest_fixlets_hash:
+		if fixlet_hash in dest_fixlets_hash:
 			# dest has this one already, skip it
 			print "Found fixlet", fixlet_id, "from SOURCE already in DEST," \
 				"skipping..."
@@ -150,9 +180,15 @@ def copy_site(auth, server, secureSSL, source_site, destination_site, get):
 			data = r.content,
 			auth = auth,
 			verify = secureSSL )
+		postr = BeautifulSoup(postr.content)
+		fixlet_dest_id = postr.find('id').text
+		dest_fixlets_hash[fixlet_hash] = fixlet_dest_id
+		
 		print sys.getsizeof(r.content) / 1024.0, "KiB copied"
 		total_kib_copied += sys.getsizeof(r.content) / 1024.0
 	print total_kib_copied, "KiB in total copied"
+
+	save_fixlet_hashes(dest_fixlets_hash)
 
 	# test(auth, server, secureSSL, get)
 
