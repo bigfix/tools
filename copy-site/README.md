@@ -28,5 +28,3 @@ custom site named "copysite_test".
 
 	python copy-site.py --user bigfix --password bigfix -s https://localhost:52311/ -r "BES Support" -d copysite_test
 
-Copy content from an enterprise site to a custom site
-  * Configurable to a site and/or content type
