@@ -23,4 +23,4 @@ Example
 ---
 This command will cache all downloads of files with a `.exe` extension with a size less than 0.1 GB:
 
-    python cache-download.py --user bigfix:bigfix --server localhost:52311 --type exe --maxsize 100000000
+    python cache-download.py --user bigfix --password bigfix --server localhost:52311 --type exe --maxsize 100000000
