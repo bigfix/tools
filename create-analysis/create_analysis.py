@@ -22,7 +22,6 @@ class BigFixArgParser(ArgumentParser):
   -p, --password              REST API password
   -t, --site_type             Site type: master/custom/operator/external
   -n, --site_name             Site-name
-  -k, --insecure              Ignore SSL verification
 
   Note:
     This application takes the relevance from stdin, each query statement should be in one line"""
