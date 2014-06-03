@@ -20,15 +20,12 @@ CACHE_LOCATION = ''
 
 args = {}
 session = None
-username = ''
-password = ''
 secure = True
 
 def run():
-    global args, session, username, password, secure
+    global args, session, secure
     # set up argument parsing
-    parser = example.BigFixArgParser()
-    parser.description = 'A script to pre-fetch downloads to a root server'
+    parser = example.BigFixArgParser('A script to pre-fetch downloads to a root server')
     parser.base_usage += """
   -v, --verbose               Print more output
   -d, --dry                   Only print names of files to cache
@@ -46,7 +43,6 @@ def run():
     parser.add_argument('-n', '--names', nargs='*', help='only download files with some name')
     args = parser.parse_args()
 
-    username, password = args.user.split(':')
     secure = not args.insecure
     if not args.type is None:
         args.type = args.type.lower()
@@ -96,17 +92,17 @@ def run():
                         print 'saved file {} [{}] to {}'.format(filename, size, target)
 
 def fetch_fixlet_prefetch_actions(url):
-    response = requests.get(url, auth=(username, password), verify=secure)
+    response = requests.get(url, auth=(args.user, args.password), verify=secure)
     return re.finditer(PREFETCH_REGEXP, response.text)
 
 def fetch_fixlet_urls(url):
-    response = requests.get(url, auth=(username, password), verify=secure)
+    response = requests.get(url, auth=(args.user, args.password), verify=secure)
     return re.finditer(FIXLET_REGEXP, response.text)
 
 def fetch_gather_urls():
     '''Use a relevance query to fetch all gather urls'''
     url = 'https://' + args.server + '/api/query?relevance=' + FETCH_ALL_GATHER_QUERY
-    response = requests.get(url, auth=(username, password), verify=secure)
+    response = requests.get(url, auth=(args.user, args.password), verify=secure)
     parsed = bs4.BeautifulSoup(response.text)
     pairs = parsed.result.find_all('tuple')
     pairs = [p.find_all('answer') for p in pairs]
