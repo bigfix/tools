@@ -1,0 +1,3 @@
+shutdown, delete, wait, continue if {"True" = parameter "ServerUpgradeResult"}, wait "__Download/ServerInstaller_9.0.853.0-rhel/install.sh" -upgradeNoClient -opt BES_PREREQ_INSTALL=exit, 
+delete __Local\Get\BESServerAPI.exe
+
