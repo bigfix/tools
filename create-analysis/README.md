@@ -7,15 +7,15 @@ evaluation result as they come in (the script will check every 10 second if the 
 
 Parameters
 ---
-  -a, --analysis_name         Analysis name
-  -d, --description           Analysis description
-  -h, --help                  Print this help message and exit
-  -s, --server SERVER[:PORT]  REST API server and port
-  -u, --user                  REST API user
-  -p, --password              REST API password
-  -t, --site_type             Site type: master/custom/operator/external
-  -n, --site_name             Site-name
-  -k, --insecure              Ignore SSL verification
+  * '-a, --analysis_name'         Analysis name
+  * '-d, --description'           Analysis description
+  * '-h, --help'                  Print this help message and exit
+  * '-s, --server SERVER[:PORT]''  REST API server and port
+  * '-u, --user'                  REST API user
+  * '-p, --password'              REST API password
+  * '-t, --site_type'             Site type: master/custom/operator/external
+  * '-n, --site_name'             Site-name
+  * '-k, --insecure'              Ignore SSL verification
 
 Example
 ---
