@@ -91,12 +91,39 @@ def create_analysis(server, site_type, site_name, user, password, analysis, inse
   return r.text
 
 
+def find_id(reply):
+  found = re.findall(r'<ID>[0-9]*?</ID>', reply)
+  if len(found) == 0:
+    print "Analysis creation failed!"
+    exit(1)
+  return found[0][4: len(found[0]) - 5]
+
+def print_result(ID, server, user, password, insecure):
+  property_id = requests.post('https://{0}/api/query'.format(server), auth=(user, password), verify=not insecure,
+                              data={'relevance': '(ids of it as string) of bes properties whose (item 1 of id of it = {0})'.format(ID)}
+                             ).text
+  property_id = re.findall(r'string">([0-9, ]*?)<', property_id)
+  for line in property_id:
+    result = requests.post('https://{0}/api/query'.format(server), auth=(user, password), verify=not insecure,
+                        data={'relevance': '(name of computer of it, value of it) of results of bes properties whose (id of it = ({0}))'.format(line)}
+                        ).text
+    result = re.findall(r'string">([^>]*?)<', result)
+    print "Computer name:  " + result[0]
+    print "     Result:  " + result[1] + "\n"
+
+
+
+
 def main():
   args = BigFixArgParser().parse_args()
-  relevance = stdin.read()
+  relevance = stdin.read().splitlines()
   analysis = compose_analysis(args.analysis_name, args.description, relevance)
-  stdout.write(create_analysis(args.server, args.site_type, args.site_name,
-                               args.user, args.password, analysis, args.insecure))
+  reply = create_analysis(args.server, args.site_type, args.site_name,
+                          args.user, args.password, analysis, args.insecure)
+  ID = find_id(reply)
+  print_result(46, args.server, args.user, args.password, args.insecure)
+
+
 
 
 if __name__ == "__main__":
