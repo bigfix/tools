@@ -19,4 +19,5 @@ Parameters
 Example
 ---
 	echo operating system | python create_analysis.py -a OS -d Test -s 127.0.0.1:52311 -u bigfix -p bigfix -t operator -n bigfix --insecure
+
 	python create_analysis.py -a OS -d Test -s 127.0.0.1:52311 -u bigfix -p bigfix -t operator -n bigfix --insecure < analysis.txt
