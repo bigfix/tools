@@ -4,10 +4,6 @@ import sys
 from argparse import ArgumentParser
 from getpass import getpass
 
-class Classy():
-  def __init__(self, d):
-    print d
-
 class BigFixArgParser(ArgumentParser):
   name = "Usage: %s [options]"
   base_usage = """Options:
