@@ -23,8 +23,8 @@ Tested on `bran` a Windows Server 2012 environment:
 
 In this example, the following will allow `bran` to use another BFEnteprise database, `summer`.
  
-    python warg.py --source-db-name `bran_BFEnterprise`
-                   --target-db-name `summer_BFEnterprise`
+    python warg.py --source-db-name bran_BFEnterprise
+                   --target-db-name summer_BFEnterprise
                    --sql-server-host localhost
                    --sql-server-user sa
                    --sql-server-password bigfix
