@@ -26,7 +26,5 @@ In this example, the following will allow `bran` to use another BFEnteprise data
     python warg.py --source-db-name `bran_BFEnterprise`
                    --target-db-name `summer_BFEnterprise`
                    --sql-server-host localhost
-                   --sql-server-user sa
-                   --sql-server-password bigfix
                    --site-pvk-location C:\winterfell\license.pvk
                    --site-pvk-password bigfix

@@ -114,17 +114,38 @@ class BESAdmin:
     if self.__exists_window_from_pid(process.pid):
       return # todo: raise
 
+class Authentication:
+  def __init__(self, windows, user=None, password=None, prompt=False):
+    if (windows and ((user is not None) or (password is not None))) \
+     or ((not windows) and ((user is None) or (password is None))):
+      raise Exception(
+        'Must specify either Windows or SQL server authentication')
+
+    self.windows = windows
+
+    if prompt and not windows:
+      if user is None:
+        self.user = input('Enter user for SQL server: ')
+      else:
+        self.user = user
+
+      if password is None:
+        self.password = getpass(
+          'Enter password for SQL server user "{0}": '.format(
+            args.sql_server_user))
+      else:
+        self.password = password
+
 class Database:
-  def __init__(self, host, port, user, password, name):
+  def __init__(self, host, port, auth, name):
     connect = 'DRIVER={{SQL Server}};' \
               'SERVER={0};'.format(host)
     if port is not None:
       connect += 'PORT={0};'.format(port)
-    connect += 'UID={0};' \
-               'PWD={1};' \
-               'DATABASE={2};'.format(user, 
-                                      password,
-                                      name)
+    if not auth.windows:
+      connect += 'UID={0};PWD={1};'.format(auth.user, auth.password)
+    connect += 'DATABASE={0};'.format(name)
+
     self._connection = pyodbc.connect(connect,
                                       autocommit=True)
     self._cursor = self._connection.cursor()
@@ -311,8 +332,11 @@ Options:
 
   -H, --sql-server-host HOST        SQL server host
   -p, --sql-server-port PORT        SQL server port
-  -u, --sql-server-user USER        SQL server username
-  --sql-server-password PASSWORD    SQL server password
+  -w, --sql-server-windows-auth     SQL server Windows authentication
+  -u, --sql-server-user USER        SQL server username (user password 
+                                    authentication)
+  --sql-server-password PASSWORD    SQL server password (user password 
+                                    authentication)
 
   -l, --site-pvk-location LOCATION  site private key location
   --site-pvk-password PASSWORD      site private key password
@@ -329,6 +353,8 @@ Options:
 
   argparser.add_argument('-H', '--sql-server-host')
   argparser.add_argument('-p', '--sql-server-port', default=1433)
+  argparser.add_argument('-w', '--sql-server-windows-auth', default=True,
+                         action='store_true')
   argparser.add_argument('-u', '--sql-server-user')
   argparser.add_argument('--sql-server-password')
 
@@ -355,20 +381,18 @@ Options:
   if args.sql_server_port is None:
     args.sql_server_port = input('Enter port for SQL server: ')
 
-  if args.sql_server_user is None:
-    args.sql_server_user = input('Enter user for SQL server: ')
-
-  if args.sql_server_password is None:
-    args.sql_server_password = getpass(
-      'Enter password for SQL server user "{0}": '.format(args.sql_server_user))
+  args.sql_server_auth = Authentication(windows=args.sql_server_windows_auth,
+                                        user=args.sql_server_user,
+                                        password=args.sql_server_password,
+                                        prompt=True)
 
   if args.site_pvk_location is None:
     args.site_pvk_location = input('Enter location for site private key: ')
 
   if args.site_pvk_password is None:
-    args.site_pvk_password = getpass('Enter password for site private key: ')
+    args.site_pvk_password = getpass('Enter password for site private key: ')    
 
-  return args    
+  return args
 
 def main():
   args = parse_args()
@@ -377,8 +401,7 @@ def main():
                        args.site_pvk_password),
               Database(args.sql_server_host, 
                        args.sql_server_port, 
-                       args.sql_server_user, 
-                       args.sql_server_password,
+                       args.sql_server_auth, 
                        args.target_db_name),
               Services())
   warg.change_credentials(args.source_db_name)
