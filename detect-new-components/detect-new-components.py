@@ -1,13 +1,13 @@
 # (id of it, name of it) of (bes computers whose (last report time of it > "02 Jan 2014 04:06 GMT" as time) )
 #(id of it, name of it, ip address of it, agent version of it) of (bes computers whose (last report time of it > "02 Jan 2014 04:06 GMT" as time) )
 import datetime
-from time import strftime, ctime
+from time import strftime, gmtime
 import sys
 import os
 import pickle
 
 from bs4 import BeautifulSoup
-import requests as re
+import requests
 
 from argparse import ArgumentParser
 from getpass import getpass
@@ -24,17 +24,19 @@ class BigFixArgParser(ArgumentParser):
   -k, --insecure                Don't verify the HTTPS Connection to the server
 
   Optional arguments:
-  -c, --cacheFile cacheFile     Name a file to cache components that are detected already
-                                (default: priorComponents.dict)
+  -c, --cacheFile cacheFile     
+            Name a file to cache components that are detected already
+            (default: priorComponents.dict)
   -o, --outputProperties "id" "operting system" ...
-                                properties of new [bes computer] to output
-                                (default: "agent version" "computer name" "ip")
+            properties of new [bes computer] to output
+            (default: "agent version" "name" "ip address")
   -i, --identifyProperties "cpu" "id" "operating system" ...
-                                properties of [bes computer] that indicate a new component when changed
-                                (default: "cpu" "id" "operating system")
+            properties of [bes computer] whose change indicate a new component
+            (default: "cpu" "id" "operating system")
   -m, --misc_relevance "relevance statement" 
-                                Boolean relevance statement to filter which new components to output
-                                (default "true")
+            Bool relevance expression to filter which new components to output
+            (default: "true")
+            (example: "operating system of it contains Win")
   """
 
   def __init__(self):
@@ -49,11 +51,14 @@ class BigFixArgParser(ArgumentParser):
     self.add_argument('-k', '--insecure', action='store_true')
 
     #optional arguments:
-    self.add_argument('-c', '--cacheFile', required=False, nargs='?', default="priorComponents.dict", const="priorComponents.dict")
-    self.add_argument('-o', '--outputProperties', required=False, nargs='*', default=["agent version","computer name","ip"])
-    self.add_argument('-i', '--identifyProperties', required=False, nargs='*', default=["cpu", "id", "operating system"])
-    self.add_argument('-m', '--misc_relevance', required=False, nargs='?', default="true", const="true")
-
+    self.add_argument('-c', '--cacheFile', required=False, nargs='?', 
+      default="priorComponents.dict", const="priorComponents.dict")
+    self.add_argument('-o', '--outputProperties', required=False, nargs='*', 
+      default=["agent version","name","ip address"])
+    self.add_argument('-i', '--identifyProperties', required=False, nargs='*', 
+      default=["cpu", "id", "operating system"])
+    self.add_argument('-m', '--misc_relevance', required=False, nargs='?', 
+      default="true", const="true")
 
     self.tool_usage = None
     self.password = None
@@ -81,34 +86,72 @@ class BigFixArgParser(ArgumentParser):
 
     return args
 
+def checkNotInCache(identifiersList):
+  identifier = "".join(identifiersList)
+  if identifier in db['seenComputers']:
+    return False
+  else:
+    db['seenComputers'].add(identifier)
+    return True
 
 
+defaultDB = {  
+  "updateDate":strftime("%d %b %Y %H:%M:%S GMT", gmtime(0)),
+  "seenComputers":set() 
+}
+
+db = defaultDB
 
 def main():
+  global db
+
   """ Parse the args """
   args = BigFixArgParser().parse_args()
-  print args
 
-  """ Housekeeping """
-  if not os.access(args.cacheFile, os.F_OK)
-    print "Creating cache:", args.cacheFile
-    cfile = open(args.cacheFile, "r+")
-    pickle.dump({
-      "updateDate":strftime("%a, %d %b %Y %H:%M:%S +0000", ctime(0))
-      "seenComputers":set() },
-      cfile, 
-      pickle.HIGHEST_PROTOCOL)
-    cfile.close();
-
-  if not os.access(args.cacheFile, os.R_OK | os.W_OK)
-    print "Read/Write access to cache file", args.cacheFile, "blocked. Exiting"
-    sys.exit(1)
+  """ Database Setup """
+  if os.access(args.cacheFile, os.F_OK) and not os.access(args.cacheFile, os.R_OK | os.W_OK):
+    #Cache exists, but RW is forbidden
+    print "Error: Access to cache file", args.cacheFile, "blocked. Exiting"
+    sys.exit(1);
+  elif os.access(args.cacheFile, os.F_OK): 
+    #Cache exists and is readable.
+    try:
+      db = pickle.load(open(args.cacheFile, 'r+'))
+    except Exception:
+      print "Error: Cache format corrupted. Exiting"
+      sys.exit(1);
+  else:
+    #cache does not exist.
+    db = defaultDB;
 
   """ Construct a query string """
+  #'(id of it, name of it, [property] of it...) of (bes computers whose (evaluating relevance) )'
+  out = [prop + " of it" for prop in (args.outputProperties+args.identifyProperties)] 
+  outStr = "("+  ", ".join(out) + ")"    #--> "(id of it, name of it)"
+  q = outStr + ' of (bes computers whose (last report time of it > "'+db['updateDate']+'" as time and '+args.misc_relevance+') )'
 
+  """ Query the Server """
+  res = requests.get(
+    url="https://"+args.server+"/api/query/?relevance="+q, 
+    auth=(args.user, args.password),
+    verify=not args.insecure)
+  db['updateDate'] = strftime("%d %b %Y %H:%M:%S GMT", gmtime())
+  #update the last checked date.
 
+  """ Analyze Response """
+  soup = BeautifulSoup(res.text)
+  n_out = len(args.outputProperties)
+
+  for resultTuple in soup.findAll('tuple'):
+    result = [x.string for x in resultTuple.findAll('answer')]
+
+    """ Foreach machine: Filter with Cache """
+    if checkNotInCache(result[n_out:]):
+      print "\t".join(result[:n_out])
+
+  """ Dump Cache back to disk """
+  pickle.dump(db, open(args.cacheFile, 'w+'), protocol=pickle.HIGHEST_PROTOCOL)
 
 
 if __name__ == "__main__":
   main()
-
