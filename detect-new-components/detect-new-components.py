@@ -1,5 +1,3 @@
-# (id of it, name of it) of (bes computers whose (last report time of it > "02 Jan 2014 04:06 GMT" as time) )
-#(id of it, name of it, ip address of it, agent version of it) of (bes computers whose (last report time of it > "02 Jan 2014 04:06 GMT" as time) )
 import datetime
 from time import strftime, gmtime
 import sys
@@ -109,7 +107,8 @@ def main():
   args = BigFixArgParser().parse_args()
 
   """ Database Setup """
-  if os.access(args.cacheFile, os.F_OK) and not os.access(args.cacheFile, os.R_OK | os.W_OK):
+  if (os.access(args.cacheFile, os.F_OK) \
+      and not os.access(args.cacheFile, os.R_OK | os.W_OK)):
     #Cache exists, but RW is forbidden
     print "Error: Access to cache file", args.cacheFile, "blocked. Exiting"
     sys.exit(1);
@@ -125,15 +124,20 @@ def main():
     db = defaultDB;
 
   """ Construct a query string """
-  #'(id of it, name of it, [property] of it...) of (bes computers whose (evaluating relevance) )'
-  out = [prop + " of it" for prop in (args.outputProperties+args.identifyProperties)] 
+  #along the lines of: 
+  #'(id of it, name of it, [property] of it...) 
+  # of (bes computers whose (evaluating relevance) )'
+  requestProperties = args.outputProperties + args.identifyProperties
+  out = [prop + " of it" for prop in requestProperties] 
   outStr = "("+  ", ".join(out) + ")"    #--> "(id of it, name of it)"
-  q = outStr + ' of (bes computers whose (last report time of it > "'+db['updateDate']+'" as time and '+args.misc_relevance+') )'
+  q = outStr \
+      +' of (bes computers whose (last report time of it > "'
+      +db['updateDate']+'" as time and '+args.misc_relevance+') )'
 
   """ Query the Server """
   res = requests.get(
-    url="https://"+args.server+"/api/query/?relevance="+q, 
-    auth=(args.user, args.password),
+    url   ="https://"+args.server+"/api/query/?relevance="+q, 
+    auth  =(args.user, args.password),
     verify=not args.insecure)
   db['updateDate'] = strftime("%d %b %Y %H:%M:%S GMT", gmtime())
   #update the last checked date.
