@@ -1,0 +1,19 @@
+{
+	/*server and login. Must be present as call arguments if missing from config.*/
+	"username":"bigfix",
+	"password":"bigfix",
+	"server":"localhost",
+	"port":52311,
+
+	/*dict_file names the database file used to remember which component is old.*/
+	"dict_file":"known_machines.txt",
+
+	/*must be singular properties of <bes computer>, defines the program output*/
+	"output_properties":["agent version", "name", "ip address"],
+
+	//must be singular properties of <bes computer>, where any change would indicate the component is a 'new' component.
+	"identifing_properties":["id", "operating system", "cpu"],
+
+	//Only notify about new components that fulfill this relevance statement. True by default.
+	"misc_relevance":"true"
+}
