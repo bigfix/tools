@@ -28,3 +28,6 @@ In this example, the following will allow `bran` to use another BFEnteprise data
                    --sql-server-host localhost
                    --site-pvk-location C:\winterfell\license.pvk
                    --site-pvk-password bigfix
+
+### How it works
+The Root Server's credentials on source, `bran`, are moved to the target database, `summer`. Then, the IBM Endpoint Manager Admin tool is used to re-sign the data on `summer` with the migrated credentials. The IBM Endpoint Manager binaries on `bran` are untouched and the Root Server is functional with data from `summer`.
