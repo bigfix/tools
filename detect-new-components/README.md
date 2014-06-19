@@ -44,3 +44,25 @@ In this example, the admin queries the BigFix Server for the id and Computer Nam
     				-i "cpu" "id" "unique value" "operating system" "device type"
 
 And outputs the -o properties in a tab-delimited format.
+
+
+## Discussion:
+Concurrently, backend implementation is done through pickle-dumping a Set, and the Last Check Date. However, the following limitations exist and cause inefficiencies in the code.
+ * In an idea world, there should be no need to make a separate cache of 'seen' components. Any newly-joined component should be flagged as 'new' by the Environment.
+ * Just as there is no flag for a new component, or a 'first contact time' record, the current heuristic is to check out all the BES Computers that have reported back since the last time the program was run. This is an imperfect solution, but is better than polling all the computers.
+ * The current implementation may not be scalable when the environment grows very large (in the millions), and has not been tested in such an environment.
+
+ An explorable implementation is to have a relevance expression that will return True on machines that are new. Once you have used this relevance statement to identify 'new' components, you can then send another fixlet to them such that subsequent applications of the prior relevance expression will return False. This is a slower option, but yields higher accuracy.
+ Things to keep in mind when exploring this implementation is:
+  * platform specificity. Windows, Unix, and Linux filesystems are arranged differently.
+  * the first relevance statement may depend on the machine to be Connected at the time of evaluation, so new components that are not connected at evaluation time will not be reported.
+
+
+### New Plan:
+Prompt user for:
+ * site type
+ * site name
+ * Use this fixlet, 
+	Relevance: Q: `if exist values of settings "ProvisioningTime" of client then value of setting "ProvisioningTime" of client else error "not set"`
+	Actionscript: `setting "Test Setting"="Test Value 1" on "{parameter "action issue date" of action}" for client`
+
