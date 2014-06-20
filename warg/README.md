@@ -12,6 +12,26 @@ Change the credentials of a target IBM Endpoint Manager database (BFEnterprise) 
 ## Environment
 - Windows Server
 
+## Parameters
+### Import
+* `-s, --source-db-name` (*default: BFEnterprise*)
+* `-b, --target-db-backup` .bak file location
+* `-t, --target-db-name`
+
+### SQL Server
+#### Connection
+* `-H, --sql-server-host` (*default: localhost*)
+* `-p, --sql-server-port` (*default: 1433*)
+
+#### Authentication
+* `-w, --sql-server-windows-auth` for Windows authentication (*default: on*)
+* `-u, --sql-server-user` for user password authentication
+* `--sql-server-password` for user password authentication
+
+### Site Private Key
+* `-l, --site-pvk-location`
+* `--site-pvk-password`
+
 ## Example
 Tested on `bran` a Windows Server 2012 environment:
 - Microsoft SQL Server 2012
@@ -23,8 +43,7 @@ Tested on `bran` a Windows Server 2012 environment:
 
 In this example, the following will allow `bran` to use another BFEnteprise database, `summer`.
  
-    python warg.py --source-db-name bran_BFEnterprise
-                   --target-db-name summer_BFEnterprise
+    python warg.py --target-db-backup C:\winterfell\summer_BFEnterprise.bak
                    --sql-server-host localhost
                    --site-pvk-location C:\winterfell\license.pvk
                    --site-pvk-password bigfix
