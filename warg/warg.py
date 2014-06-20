@@ -464,7 +464,7 @@ Options:
   -l, --site-pvk-location LOCATION  site private key location
   --site-pvk-password PASSWORD      site private key password
 
-  -h, --add_help                  print this help text and exit
+  -h, --help                        print this help text and exit
   """.format(description)
 
   argparser = ArgumentParser(description=description,
