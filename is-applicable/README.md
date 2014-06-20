@@ -8,9 +8,9 @@ The script lists on the console, for each fixlet and task, the names of all comp
 Parameters
 ---
 
--f, --fixlets           Specify a list of fixlet IDs to read, seperated by comma(,); if a file named "content.txt" is detected, will read the file to get the list. 
--t, --tasks             Specify a list of task IDs to read, seperated by comma(,);
--sn, --sitename         Specify the name of site containing the fixlets or tasks, within double quotes.
+ * `-f, --fixlets`           Specify a list of fixlet IDs to read, seperated by comma(,); if a file named "content.txt" is detected, will read the file to get the list. 
+ * `-t, --tasks`             Specify a list of task IDs to read, seperated by comma(,);
+ * `-sn, --sitename`         Specify the name of site containing the fixlets or tasks, within double quotes.
 
 
 Usage
