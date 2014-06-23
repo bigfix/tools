@@ -179,6 +179,12 @@ class Database:
   def execute(self, sql, *args):
     return self.cursor.execute(sql, *args)
 
+  def exists_table(self, table):
+    return self.execute("""\
+select 1 from INFORMATION_SCHEMA.TABLES 
+where TABLE_CATALOG = DB_NAME() 
+and TABLE_NAME like ?""", table).fetchone() != None
+
 class Services:
   def __run(self, x, name):
     try:
