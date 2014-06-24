@@ -32,6 +32,9 @@ Change the credentials of a target IBM Endpoint Manager database (BFEnterprise) 
 * `-l, --site-pvk-location`
 * `--site-pvk-password`
 
+### Information
+* `-h, --help`
+
 ## Example
 Tested on `bran` a Windows Server 2012 environment:
 - Microsoft SQL Server 2012
