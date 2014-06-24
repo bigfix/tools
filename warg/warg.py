@@ -370,10 +370,11 @@ update REPLICATION_SERVERS
   set DNS = '240.0.0.0',
       URL = 'http://240.0.0.0'""")
 
-    self.db.execute(""" \
-update COMPUTER_REGISTRATIONS
-  set IPAddress = '240.0.0.0',
-      Subnet = '240.0.0.0/4'""")
+    if self.db.exists_table('COMPUTER_REGISTRATIONS'):
+      self.db.execute(""" \
+  update COMPUTER_REGISTRATIONS
+    set IPAddress = '240.0.0.0',
+        Subnet = '240.0.0.0/4'""")
 
     self.besadmin.run('resignsecuritydata')
 
