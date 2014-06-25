@@ -237,7 +237,7 @@ class Warg:
     self.services = services
 
   def __stop_services(self):
-    for service in ['BESClient' 'FillDB', 'BESGather', 'GatherDB', \
+    for service in ['BESClient', 'FillDB', 'BESGather', 'GatherDB', \
                     'BESRootServer', 'BESWebReportsServer']:
       self.services.stop(service)
 
