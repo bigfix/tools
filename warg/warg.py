@@ -10,32 +10,39 @@ from queue import Queue
 from threading import Thread
 from argparse import ArgumentParser
 from getpass import getpass
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 class BESAdmin:
   __run = {'resigninvalidsignatures':
             {'options': '/findInvalidSignatures /resignInvalidSignatures',
-             'tasks':   [{'window': 'Admin Tool',
+             'tasks':   [{'window': ['Admin Tool'],
                           'button': ['OK']},
-                         {'window': 'Resign Invalid Content?',
+                         {'window': ['Resign Invalid Content?'],
                           'button': ['&Yes', 'Yes']},
-                         {'window': 'Admin Tool',
+                         {'window': ['Admin Tool'],
                           'button': ['OK']}]},
 
            'resignsecuritydata':
              {'options': '/resignSecurityData',
-              'tasks':   [{'window': 'Admin Tool',
+              'tasks':   [{'window': ['Admin Tool'],
                            'button': ['OK']}]},
 
            0:
              {'options': '',
-              'tasks':  [{'window': 'IBM Endpoint Manager Administration Tool',
+              'tasks':  [{'window':
+                            ['IBM Endpoint Manager Administration Tool',
+                             'Tivoli Endpoint Manager Administration Tool'],
                           'button': ['OK']}]}}
 
   def __init__(self, location, password):
+    self.__location = location
+    self.__password = password
+
     key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE,
                          r'SOFTWARE\BigFix\Enterprise Server',
                          access=winreg.KEY_WOW64_32KEY | winreg.KEY_QUERY_VALUE)
     server_location = winreg.QueryValueEx(key, 'EnterpriseServerFolder')[0]
+    self.port = int(winreg.QueryValueEx(key, 'Port')[0])
     key.Close()
     besadmin_location = os.path.join(server_location, 'BESAdmin.exe')
 
@@ -44,6 +51,16 @@ class BESAdmin:
                         '/evalExpressPassword:{2}'.format(besadmin_location,
                                                           location, 
                                                           password)
+
+    info = win32api.GetFileVersionInfo(besadmin_location, '\\')
+    ms = info['FileVersionMS']
+    ls = info['FileVersionLS']
+
+    self.version = '{0}.{1}.{2}.{3}'.format(win32api.HIWORD(ms),
+                                            win32api.LOWORD(ms),
+                                            win32api.HIWORD(ls),
+                                            win32api.LOWORD(ls))
+    self.major_version = '.'.join(self.version.split('.')[0:2])
 
   def __exists_window_from_pid(self, pid):
     exists = False
@@ -58,7 +75,31 @@ class BESAdmin:
     win32gui.EnumWindows(__enum_handler, None)
     return exists
 
-  def __close_button(self, hwnd, buttons):
+  def __find_window_ex(self, pid, parent, class_name, windows):
+    time.sleep(.42)
+
+    for window in windows:
+      hwnd = win32gui.FindWindowEx(parent, 0, class_name, window)
+      wait = 1
+      while hwnd == 0:
+        if wait == 512:
+          wait = 1
+        if psutil.Process(pid).cpu_percent() == 0 \
+           and self.__exists_window_from_pid(pid):
+          break
+        time.sleep(wait)
+        wait *= 2
+
+        hwnd = win32gui.FindWindowEx(parent, 0, class_name, window)
+
+      if hwnd != 0:
+        return hwnd
+    return 0 # sometimes a besadmin window crashes...
+
+  def __find_window(self, pid, windows):
+    return self.__find_window_ex(pid, 0, '#32770', windows)
+
+  def __choose_button(self, hwnd, buttons):
     for button in buttons:
       hbutton = win32gui.FindWindowEx(hwnd, 0, 'Button', button)
       if hbutton != 0:
@@ -70,21 +111,26 @@ class BESAdmin:
       # else: todo: raise
 
   def __close(self, task, pid):
-    time.sleep(.42)    
-    hwnd = win32gui.FindWindowEx(0, 0, '#32770', task['window'])
-    wait = 1
-    while hwnd == 0:
-      if wait == 512:
-        if psutil.Process(pid).cpu_percent() == 0 \
-           and self.__exists_window_from_pid(pid):
-          # sometimes a besadmin window crashes...
-          return
-      time.sleep(wait)
-      wait *= 2
+    hwnd = self.__find_window(pid, task['window'])
+    if hwnd != 0:
+      self.__choose_button(hwnd, task['button'])
 
-      hwnd = win32gui.FindWindowEx(0, 0, '#32770', task['window'])
+  def __close_with_key(self, pid):
+    main_hwnd = self.__find_window(pid, ['Site Admin Private Key'])
+    self.__choose_button(main_hwnd, ['Browse'])
 
-    self.__close_button(hwnd, task['button'])
+    location_hwnd = self.__find_window(pid, ['Site Admin Signing Key'])
+    combo_hwnd = win32gui.FindWindowEx(location_hwnd, 0, 'ComboBoxEx32', '')
+    win32api.SendMessage(combo_hwnd, win32con.WM_SETTEXT, 0, self.__location)
+    win32api.PostMessage(combo_hwnd, win32con.WM_SETFOCUS, 0, 0)
+    win32api.PostMessage(combo_hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN, 0)    
+
+    self.__choose_button(main_hwnd, ['OK'])
+
+    password_hwnd = self.__find_window(pid, ['Site Admin Private Key Password'])
+    edit_hwnd = win32gui.FindWindowEx(password_hwnd, 0, 'Edit', '')
+    win32api.SendMessage(edit_hwnd, win32con.WM_SETTEXT, 0, self.__password)
+    self.__choose_button(password_hwnd, ['OK'])
 
   def __worker(self, queue, pid):
     while True:
@@ -99,6 +145,12 @@ class BESAdmin:
     if command not in self.__run:
       return # todo: raise
 
+    fake_root_server = None
+    if (command == 'resigninvalidsignatures') and \
+       (self.major_version == '8.2'):
+      fake_root_server = FakeRootServer(self.port, self.version)
+      fake_root_server.start()
+
     config = self.__run[command]
     process = subprocess.Popen('{0} {1}'.format(self._run_command, 
                                                 config['options']))
@@ -112,8 +164,53 @@ class BESAdmin:
     thread.start()
 
     queue.join()
+
+    if (command == 'resigninvalidsignatures') and \
+       (self.major_version == '8.2'):
+      self.__close_with_key(process.pid)
+      fake_root_server.stop()
+
     if self.__exists_window_from_pid(process.pid):
       return # todo: raise
+
+class FakeRootServer(HTTPServer):
+  def __init__(self, port, version):
+    self.__stop = False
+    self.__thread = None
+    self.bigfix_version = version
+    super(FakeRootServer, self).__init__(('', port),
+                                         FakeRootServer.RequestHandler)
+
+  def start(self):
+    self.__thread = Thread(target=self.serve_forever)
+    self.__thread.daemon = True
+    self.__thread.start()
+
+  def stop(self):
+    self.shutdown()
+    self.__thread.join()
+
+  class RequestHandler(BaseHTTPRequestHandler):
+    def __init__(self, request, client_address, server):
+      self.server_version = 'BigFixHTTPServer/{0}'.format(server.bigfix_version)
+      self.sys_version = ''
+      super(FakeRootServer.RequestHandler, self).__init__(request,
+                                                          client_address,
+                                                          server)
+
+    def do_GET(self):
+      self.send_response(200)
+      self.send_header('Content-Type', 'text/plain')
+      self.send_header('x-bigfix-clientregister-version',
+                       self.server.bigfix_version)
+      self.send_header('x-fixlet-site-gather-url',
+        'http://localhost:{0}/cgi-bin/bfgather.exe/actionsite'.format(
+          self.client_address[1]))
+      self.end_headers()
+
+      self.wfile.write(bytes('\r\nClientRegister\r\nVersion {0}\r\n'.format(
+                               self.server.bigfix_version),
+                             'utf-8'))
 
 class Authentication:
   def __init__(self, windows, user=None, password=None, prompt=False):
@@ -180,10 +277,13 @@ class Database:
     return self.cursor.execute(sql, *args)
 
   def exists_table(self, table):
-    return self.execute("""\
+    return self.execute(""" \
 select 1 from INFORMATION_SCHEMA.TABLES 
 where TABLE_CATALOG = DB_NAME() 
 and TABLE_NAME like ?""", table).fetchone() != None
+
+  def get_version(self):
+    return self.execute('select Version from DBINFO').fetchone()[0]
 
 class Services:
   def __run(self, x, name):
@@ -343,8 +443,7 @@ and A.FieldName in ('ClientCACertificate_0', 'Masthead', \
 """.format(source_db_name))
 
     self.db.execute(""" \
-update ADMINFIELDS
-  set IsDeleted = 1
+delete from ADMINFIELDS
 where FieldName like '%Certificate_[1-9]'""")
 
     self.db.execute(""" \
@@ -362,13 +461,16 @@ update CUSTOM_SITES
 
     self.db.execute(""" \
 update REPLICATION_SERVERS
-  set IsDeleted = 1
+  set IsDeleted = 1,
+      DNS = '240.0.0.0',
+      URL = 'http://240.0.0.0'
 where ServerID != 0""")
 
     self.db.execute(""" \
 update REPLICATION_SERVERS
-  set DNS = '240.0.0.0',
-      URL = 'http://240.0.0.0'""")
+   set DNS = 'localhost',
+       URL = 'http://localhost:52311'
+where ServerID = 0""")
 
     if self.db.exists_table('COMPUTER_REGISTRATIONS'):
       self.db.execute(""" \
@@ -400,13 +502,21 @@ where SiteID = ?""", new_site_id, old_site_id)
 
     self.besadmin.run('resigninvalidsignatures')
 
-    self.db.execute(""" \
+    if self.besadmin.major_version == '8.2':
+      self.db.execute(""" \
 delete O from LOCAL_OBJECT_DEFS O
 inner join Versions V
-on O.Sitename = 'ActionSite' 
-and V.Sitename = O.Sitename 
+on V.Sitename = 'ActionSite'
+and O.ID = V.ID
+and O.Version != V.LatestVersion""")
+    else:
+      self.db.execute(""" \
+delete O from LOCAL_OBJECT_DEFS O
+inner join Versions V
+on V.Sitename = 'ActionSite'
+and O.Sitename = V.Sitename
 and O.ID = V.ID 
-and O.Version != V.LatestVersion""")    
+and O.Version != V.LatestVersion""")
 
   def __start_server_services(self):
     for service in ['FillDB', 'BESGather', 'GatherDB', 'BESRootServer']:
