@@ -47,7 +47,6 @@ Tested on `bran` a Windows Server 2012 environment:
 In this example, the following will allow `bran` to use another BFEnteprise database, `summer`.
  
     python warg.py --target-db-backup C:\winterfell\summer_BFEnterprise.bak
-                   --sql-server-host localhost
                    --site-pvk-location C:\winterfell\license.pvk
                    --site-pvk-password bigfix
 
