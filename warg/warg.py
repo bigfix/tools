@@ -82,11 +82,11 @@ class BESAdmin:
       hwnd = win32gui.FindWindowEx(parent, 0, class_name, window)
       wait = 1
       while hwnd == 0:
-        if wait == 512:
+        if wait == 32:
           wait = 1
-        if psutil.Process(pid).cpu_percent() == 0 \
-           and self.__exists_window_from_pid(pid):
-          break
+          if psutil.Process(pid).cpu_percent() == 0 \
+             and self.__exists_window_from_pid(pid):
+            break
         time.sleep(wait)
         wait *= 2
 
@@ -123,7 +123,7 @@ class BESAdmin:
     combo_hwnd = win32gui.FindWindowEx(location_hwnd, 0, 'ComboBoxEx32', '')
     win32api.SendMessage(combo_hwnd, win32con.WM_SETTEXT, 0, self.__location)
     win32api.PostMessage(combo_hwnd, win32con.WM_SETFOCUS, 0, 0)
-    win32api.PostMessage(combo_hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN, 0)    
+    win32api.PostMessage(combo_hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN, 0)
 
     self.__choose_button(main_hwnd, ['OK'])
 
