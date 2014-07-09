@@ -62,6 +62,20 @@ class BESAdmin:
                                             win32api.LOWORD(ls))
     self.major_version = '.'.join(self.version.split('.')[0:2])
 
+  def __not_exists_window(self, pid, windows):
+    exists = False
+    def __enum_handler(hwnd, *args):
+      nonlocal exists
+      _, p = win32process.GetWindowThreadProcessId(hwnd)
+      if p == pid and win32gui.IsWindowVisible(hwnd) \
+         and win32gui.IsWindowEnabled(hwnd) \
+         and win32gui.GetWindowText(hwnd) not in windows:
+        exists = True
+        return
+
+    win32gui.EnumWindows(__enum_handler, None)
+    return exists
+
   def __exists_window_from_pid(self, pid):
     exists = False
     def __enum_handler(hwnd, *args):
@@ -75,29 +89,38 @@ class BESAdmin:
     win32gui.EnumWindows(__enum_handler, None)
     return exists
 
-  def __find_window_ex(self, pid, parent, class_name, windows):
-    time.sleep(.42)
+  def __find_window_ex(self, pid, windows):
+    handle = 0
+    def __enum_handler(hwnd, *args):
+      nonlocal handle
+      _, p = win32process.GetWindowThreadProcessId(hwnd)
+      if p == pid and win32gui.IsWindowVisible(hwnd) \
+         and win32gui.IsWindowEnabled(hwnd) \
+         and win32gui.GetWindowText(hwnd) in windows:
+        handle = hwnd
+        return
 
-    for window in windows:
-      hwnd = win32gui.FindWindowEx(parent, 0, class_name, window)
-      wait = 1
-      while hwnd == 0:
-        if wait == 32:
-          wait = 1
-          if psutil.Process(pid).cpu_percent() == 0 \
-             and self.__exists_window_from_pid(pid):
-            break
-        time.sleep(wait)
-        wait *= 2
-
-        hwnd = win32gui.FindWindowEx(parent, 0, class_name, window)
-
-      if hwnd != 0:
-        return hwnd
-    return 0 # sometimes a besadmin window crashes...
+    win32gui.EnumWindows(__enum_handler, None)
+    return handle
 
   def __find_window(self, pid, windows):
-    return self.__find_window_ex(pid, 0, '#32770', windows)
+    count = 0
+    handle = self.__find_window_ex(pid, windows)
+    while handle == 0:
+      if psutil.Process(pid).cpu_percent() == 0:
+        count += 1
+      else:
+        count = 0
+
+      if count == 42:
+        if self.__not_exists_window(pid, windows):
+          return 0
+        else:
+          count = 0
+
+      time.sleep(.1)
+      handle = self.__find_window_ex(pid, windows)
+    return handle
 
   def __choose_button(self, hwnd, buttons):
     for button in buttons:
@@ -118,6 +141,7 @@ class BESAdmin:
   def __close_with_key(self, pid):
     main_hwnd = self.__find_window(pid, ['Site Admin Private Key'])
     self.__choose_button(main_hwnd, ['Browse'])
+    time.sleep(.42)
 
     location_hwnd = self.__find_window(pid, ['Site Admin Signing Key'])
     combo_hwnd = win32gui.FindWindowEx(location_hwnd, 0, 'ComboBoxEx32', '')
@@ -126,6 +150,7 @@ class BESAdmin:
     win32api.PostMessage(combo_hwnd, win32con.WM_KEYDOWN, win32con.VK_RETURN, 0)
 
     self.__choose_button(main_hwnd, ['OK'])
+    time.sleep(.42)
 
     password_hwnd = self.__find_window(pid, ['Site Admin Private Key Password'])
     edit_hwnd = win32gui.FindWindowEx(password_hwnd, 0, 'Edit', '')
