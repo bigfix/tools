@@ -94,7 +94,8 @@ class BESAdmin:
     def __enum_handler(hwnd, *args):
       nonlocal handle
       _, p = win32process.GetWindowThreadProcessId(hwnd)
-      if p == pid and win32gui.IsWindowVisible(hwnd) \
+      if p == pid \
+         and win32gui.IsWindowVisible(hwnd) \
          and win32gui.IsWindowEnabled(hwnd) \
          and win32gui.GetWindowText(hwnd) in windows:
         handle = hwnd
