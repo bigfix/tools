@@ -123,16 +123,29 @@ class BESAdmin:
       handle = self.__find_window_ex(pid, windows)
     return handle
 
-  def __choose_button(self, hwnd, buttons):
-    for button in buttons:
-      hbutton = win32gui.FindWindowEx(hwnd, 0, 'Button', button)
-      if hbutton != 0:
-        win32api.PostMessage(hbutton, win32con.WM_LBUTTONDOWN, 
-                             win32con.MK_LBUTTON, 0)
-        win32api.PostMessage(hbutton, win32con.WM_LBUTTONUP, 
-                             win32con.MK_LBUTTON, 0)
+  def __find_button_ex(self, parent, buttons):
+    handle = 0
+    def __enum_handler(hwnd, *args):
+      nonlocal handle
+      if win32gui.GetClassName(hwnd) == 'Button' \
+         and win32gui.IsWindowVisible(hwnd) \
+         and win32gui.IsWindowEnabled(hwnd) \
+         and win32gui.GetWindowText(hwnd) in buttons:
+        handle = hwnd
         return
-      # else: todo: raise
+
+    win32gui.EnumChildWindows(parent, __enum_handler, None)
+    return handle
+
+  def __choose_button(self, hwnd, buttons):
+    hbutton = self.__find_button_ex(hwnd, buttons)
+    if hbutton != 0:
+      win32api.PostMessage(hbutton, win32con.WM_LBUTTONDOWN,
+                           win32con.MK_LBUTTON, 0)
+      win32api.PostMessage(hbutton, win32con.WM_LBUTTONUP,
+                           win32con.MK_LBUTTON, 0)
+    return
+    # else: todo: raise
 
   def __close(self, task, pid):
     hwnd = self.__find_window(pid, task['window'])
