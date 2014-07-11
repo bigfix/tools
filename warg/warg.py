@@ -20,7 +20,8 @@ class BESAdmin:
                          {'window': ['Resign Invalid Content?'],
                           'button': ['&Yes', 'Yes']},
                          {'window': ['Admin Tool'],
-                          'button': ['OK']}]},
+                          'button': ['OK'],
+                          'skip': '8.2'}]},
 
            'resignsecuritydata':
              {'options': '/resignSecurityData',
@@ -62,26 +63,15 @@ class BESAdmin:
                                             win32api.LOWORD(ls))
     self.major_version = '.'.join(self.version.split('.')[0:2])
 
-  def __not_exists_window(self, pid, windows):
-    exists = False
-    def __enum_handler(hwnd, *args):
-      nonlocal exists
-      _, p = win32process.GetWindowThreadProcessId(hwnd)
-      if p == pid and win32gui.IsWindowVisible(hwnd) \
-         and win32gui.IsWindowEnabled(hwnd) \
-         and win32gui.GetWindowText(hwnd) not in windows:
-        exists = True
-        return
-
-    win32gui.EnumWindows(__enum_handler, None)
-    return exists
-
   def __exists_window_from_pid(self, pid):
     exists = False
     def __enum_handler(hwnd, *args):
       nonlocal exists
       _, p = win32process.GetWindowThreadProcessId(hwnd)
-      if p == pid and win32gui.IsWindowVisible(hwnd) \
+      if p == pid \
+         and win32gui.IsWindow(hwnd) \
+         and win32gui.GetClassName(hwnd) == '#32770' \
+         and win32gui.IsWindowVisible(hwnd) \
          and win32gui.IsWindowEnabled(hwnd):
         exists = True
         return
@@ -95,6 +85,8 @@ class BESAdmin:
       nonlocal handle
       _, p = win32process.GetWindowThreadProcessId(hwnd)
       if p == pid \
+         and win32gui.IsWindow(hwnd) \
+         and win32gui.GetClassName(hwnd) == '#32770' \
          and win32gui.IsWindowVisible(hwnd) \
          and win32gui.IsWindowEnabled(hwnd) \
          and win32gui.GetWindowText(hwnd) in windows:
@@ -114,7 +106,7 @@ class BESAdmin:
         count = 0
 
       if count == 42:
-        if self.__not_exists_window(pid, windows):
+        if self.__exists_window_from_pid(pid):
           return 0
         else:
           count = 0
@@ -133,21 +125,29 @@ class BESAdmin:
          and win32gui.GetWindowText(hwnd) in buttons:
         handle = hwnd
         return
-
-    win32gui.EnumChildWindows(parent, __enum_handler, None)
+    try:
+      win32gui.EnumChildWindows(parent, __enum_handler, None)
+    except:
+      handle = 0
     return handle
 
   def __choose_button(self, hwnd, buttons):
     hbutton = self.__find_button_ex(hwnd, buttons)
-    if hbutton != 0:
-      win32api.PostMessage(hbutton, win32con.WM_LBUTTONDOWN,
-                           win32con.MK_LBUTTON, 0)
-      win32api.PostMessage(hbutton, win32con.WM_LBUTTONUP,
-                           win32con.MK_LBUTTON, 0)
+    while hbutton == 0:
+      time.sleep(.1)
+      hbutton = self.__find_button_ex(hwnd, buttons)
+
+    win32api.PostMessage(hbutton, win32con.WM_LBUTTONDOWN,
+                         win32con.MK_LBUTTON, 0)
+    win32api.PostMessage(hbutton, win32con.WM_LBUTTONUP,
+                         win32con.MK_LBUTTON, 0)
     return
     # else: todo: raise
 
   def __close(self, task, pid):
+    if 'skip' in task and self.major_version == task['skip']:
+      return
+
     hwnd = self.__find_window(pid, task['window'])
     if hwnd != 0:
       self.__choose_button(hwnd, task['button'])
