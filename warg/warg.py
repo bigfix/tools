@@ -662,6 +662,9 @@ Options:
 
   if (args.target_db_backup is None) and (args.target_db_name is None):
     args.target_db_backup = input('Enter location for target database backup: ')
+    if args.target_db_backup.startswith('"') \
+       and args.target_db_backup.startswith('"'):
+      args.target_db_backup = args.target_db_backup[1:-1]
 
   args.sql_server_auth = Authentication(windows=args.sql_server_windows_auth,
                                         user=args.sql_server_user,
@@ -670,6 +673,9 @@ Options:
 
   if args.site_pvk_location is None:
     args.site_pvk_location = input('Enter location for site private key: ')
+    if args.site_pvk_location.startswith('"') \
+       and args.site_pvk_location.startswith('"'):
+      args.site_pvk_location = args.site_pvk_location[1:-1]
 
   if args.site_pvk_password is None:
     args.site_pvk_password = getpass('Enter password for site private key: ')    
