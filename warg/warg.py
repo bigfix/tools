@@ -511,6 +511,15 @@ update REPLICATION_SERVERS
        URL = 'http://localhost:52311'
 where ServerID = 0""")
 
+    self.db.execute(""" \
+update LDAP_SETTINGS
+  set IsDeleted = 1""")
+
+    self.db.execute(""" \
+update USERINFO
+  set IsDeleted = 1
+where LdapID = NULL""")
+
     if self.db.exists_table('COMPUTER_REGISTRATIONS'):
       self.db.execute(""" \
   update COMPUTER_REGISTRATIONS
