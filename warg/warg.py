@@ -518,7 +518,7 @@ update LDAP_SETTINGS
     self.db.execute(""" \
 update USERINFO
   set IsDeleted = 1
-where LdapID = NULL""")
+where LdapID IS NULL""")
 
     if self.db.exists_table('COMPUTER_REGISTRATIONS'):
       self.db.execute(""" \
